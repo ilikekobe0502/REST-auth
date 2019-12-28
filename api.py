@@ -14,7 +14,7 @@ import json
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://hinvtfrifptiul:b47c10acf8a0d32de18e491d117848a68ae615b914aa1a70d2e9f895bfd46b48@ec2-107-21-214-222.compute-1.amazonaws.com:5432/d57riviv2qc0k0'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://fnzgtyvmqbsrwa:52053f1b066e034dadb611769423679e4a0b02d6633097ad12b5a277d6405407@ec2-107-22-216-123.compute-1.amazonaws.com:5432/d21j0g667uinji'
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 
 # extensions
@@ -26,7 +26,7 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), index=True)
-    password_hash = db.Column(db.String(64))
+    password_hash = db.Column(db.String(200))
     email = db.Column(db.String(128))
 
     def hash_password(self, password):
