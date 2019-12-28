@@ -13,8 +13,8 @@ import json
 # initialization
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://hinvtfrifptiul:b47c10acf8a0d32de18e491d117848a68ae615b914aa1a70d2e9f895bfd46b48@ec2-107-21-214-222.compute-1.amazonaws.com:5432/d57riviv2qc0k0'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://hinvtfrifptiul:b47c10acf8a0d32de18e491d117848a68ae615b914aa1a70d2e9f895bfd46b48@ec2-107-21-214-222.compute-1.amazonaws.com:5432/d57riviv2qc0k0'
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 
 # extensions
@@ -138,6 +138,6 @@ def handle_invalid_usage(error):
     return response
 
 if __name__ == '__main__':
-    if not os.path.exists('db.sqlite'):
-        db.create_all()
+    #if not os.path.exists('db.sqlite'):
+    db.create_all()
     app.run(debug=True)
