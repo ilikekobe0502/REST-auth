@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 import os
-from flask import Flask, abort, request, jsonify, g, url_for
+from flask import Flask, abort, request, g, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
+from errorHandler import InvalidUsage                   
+from statusCode import *
+import json       
 
 # initialization
 app = Flask(__name__)
@@ -23,6 +26,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), index=True)
     password_hash = db.Column(db.String(64))
+    email = db.Column(db.String(128))
 
     def hash_password(self, password):
         self.password_hash = pwd_context.encrypt(password)
@@ -46,6 +50,12 @@ class User(db.Model):
         user = User.query.get(data['id'])
         return user
 
+# Internal function
+
+@auth.error_handler
+def auth_error_handler():
+    result = response(login_failed)
+    return json.dumps(result)
 
 @auth.verify_password
 def verify_password(username_or_token, password):
@@ -59,20 +69,34 @@ def verify_password(username_or_token, password):
     g.user = user
     return True
 
+# API
 
 @app.route('/api/users', methods=['POST'])
 def new_user():
     username = request.json.get('username')
     password = request.json.get('password')
-    if username is None or password is None:
-        abort(400)    # missing arguments
+    email = request.json.get('email')
+    if username is None or password is None or email is None:
+        #raise InvalidUsage('missing argument', status_code=400)
+        result = response(missing_argument)
+        return json.dumps(result)
+
+    if username is '' or password is '' or email is '':
+        #raise InvalidUsage('something is empty', status_code=400)
+        result = response(something_empty) 
+        return json.dumps(result)
+        
     if User.query.filter_by(username=username).first() is not None:
-        abort(400)    # existing user
-    user = User(username=username)
+        #raise InvalidUsage('user already exists', status_code=400)
+        result = response(user_exisit) 
+        return json.dumps(result)
+        
+    user = User(username=username,email=email)
     user.hash_password(password)
     db.session.add(user)
     db.session.commit()
-    return (jsonify({'username': user.username}), 201,
+    result = response(succeed,'user create success')
+    return (json.dumps(result), 201,
             {'Location': url_for('get_user', id=user.id, _external=True)})
 
 
@@ -80,25 +104,37 @@ def new_user():
 def get_user(id):
     user = User.query.get(id)
     if not user:
-        abort(400)
-    return jsonify({'username': user.username})
+        #abort(400)
+        result = response(user_do_not_exisit,'Can not find user ')        
+    else:
+        result = response(succeed,dict({'username':user.username}))
+    return json.dumps(result)
 
 
 @app.route('/api/token')
 @auth.login_required
 def get_auth_token():
     token = g.user.generate_auth_token(600)
-    return jsonify({'token': token.decode('ascii'), 'duration': 600})
+    result = response(succeed,dict({'token':token.decode('ascii'),'duration':600}))
+    return json.dumps(result)
 
 
-@app.route('/api/resource')
+@app.route('/api/login')
 @auth.login_required
-def get_resource():
-    return jsonify({'data': 'Hello, %s!' % g.user.username})
+def get_login():
+    result = response(succeed,'login success')
+    return json.dumps(result)
 
 @app.route('/')
 def test():
-    return jsonify({'data': 'Hello world'})
+    result = response(succeed,'Hello world')
+    return json.dumps(result)
+
+@app.errorhandler(InvalidUsage)
+def handle_invalid_usage(error):
+    response = json.dumps(error.to_dict())
+    response.status_code = error.status_code
+    return response
 
 if __name__ == '__main__':
     if not os.path.exists('db.sqlite'):
