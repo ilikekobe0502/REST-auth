@@ -6,9 +6,9 @@ from flask_httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
-from errorHandler import InvalidUsage                   
-from statusCode import *
-import json       
+from errorHandler import InvalidUsage
+from statusCode import Code,response
+import json
 
 # initialization
 app = Flask(__name__)
@@ -54,7 +54,7 @@ class User(db.Model):
 
 @auth.error_handler
 def auth_error_handler():
-    result = response(login_failed)
+    result = response(Code.login_failed)
     return json.dumps(result)
 
 @auth.verify_password
@@ -78,24 +78,24 @@ def new_user():
     email = request.json.get('email')
     if username is None or password is None or email is None:
         #raise InvalidUsage('missing argument', status_code=400)
-        result = response(missing_argument)
+        result = response(Code.missing_argument)
         return json.dumps(result)
 
-    if username is '' or password is '' or email is '':
+    if username == '' or password == '' or email == '':
         #raise InvalidUsage('something is empty', status_code=400)
-        result = response(something_empty) 
+        result = response(Code.something_empty)
         return json.dumps(result)
-        
+
     if User.query.filter_by(username=username).first() is not None:
         #raise InvalidUsage('user already exists', status_code=400)
-        result = response(user_exisit) 
+        result = response(Code.user_exisit)
         return json.dumps(result)
-        
+
     user = User(username=username,email=email)
     user.hash_password(password)
     db.session.add(user)
     db.session.commit()
-    result = response(succeed,'user create success')
+    result = response(Code.succeed,'user create success')
     return (json.dumps(result), 201,
             {'Location': url_for('get_user', id=user.id, _external=True)})
 
@@ -105,9 +105,9 @@ def get_user(id):
     user = User.query.get(id)
     if not user:
         #abort(400)
-        result = response(user_do_not_exisit,'Can not find user ')        
+        result = response(Code.user_do_not_exisit,'Can not find user ')
     else:
-        result = response(succeed,dict({'username':user.username}))
+        result = response(Code.succeed,dict({'username':user.username}))
     return json.dumps(result)
 
 
@@ -115,19 +115,19 @@ def get_user(id):
 @auth.login_required
 def get_auth_token():
     token = g.user.generate_auth_token(600)
-    result = response(succeed,dict({'token':token.decode('ascii'),'duration':600}))
+    result = response(Code.succeed,dict({'token':token.decode('ascii'),'duration':600}))
     return json.dumps(result)
 
 
 @app.route('/api/login')
 @auth.login_required
 def get_login():
-    result = response(succeed,'login success')
+    result = response(Code.succeed,'login success')
     return json.dumps(result)
 
 @app.route('/')
 def test():
-    result = response(succeed,'Hello world')
+    result = response(Code.succeed,'Hello world')
     return json.dumps(result)
 
 @app.errorhandler(InvalidUsage)
